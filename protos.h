@@ -32,7 +32,7 @@ void clr_inode(struct minix_fs_dat *fs, int inode);
 void parse_mkfs(int argc, char **argv, int *magic_p, int *nblks_p, int *inodes_p);
 void cmd_mkfs(int argc, char **argv);
 void cmd_genfs(int argc, char **argv);
-void outent(FILE *fp, const char *dp, int namlen);
+void outent(FILE *fp, const u8 *dp, int namlen);
 void dodir(struct minix_fs_dat *fs, const char *path);
 void cmd_dir(struct minix_fs_dat *fs, int argc, char **argv);
 int domkdir(struct minix_fs_dat *fs, char *newdir);

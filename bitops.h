@@ -49,19 +49,19 @@ bitop (setbit, "set")
 bitop (clrbit, "clr")
 
 #else
-static inline int bit(char * addr,unsigned int nr) 
+static inline int bit(u8 * addr,unsigned int nr)
 {
   return (addr[nr >> 3] & (1<<(nr & 7))) != 0;
 }
 
-static inline int setbit(char * addr,unsigned int nr)
+static inline int setbit(u8 * addr,unsigned int nr)
 {
   int __res = bit(addr, nr);
   addr[nr >> 3] |= (1<<(nr & 7));
   return __res != 0; \
 }
 
-static inline int clrbit(char * addr,unsigned int nr)
+static inline int clrbit(u8 * addr,unsigned int nr)
 {
   int __res = bit(addr, nr);
   addr[nr >> 3] &= ~(1<<(nr & 7));

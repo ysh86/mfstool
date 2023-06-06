@@ -26,6 +26,7 @@
 #include "protos.h"
 #include "bitops.h"
 #include <string.h>
+#include <arpa/inet.h>
 
 /**
  * Compare filenames in a directory structure
@@ -67,8 +68,11 @@ int ilookup_name(struct minix_fs_dat *fs,int inode,const char *lname,
     bsz = read_inoblk(fs,inode,i / BLOCK_SIZE,blk);
     for (j = 0; j < bsz ; j+= dentsz) {
       u16 fino = *((u16 *)(blk+j));
+      if (fs->is_BE) {
+        fino = ntohs(fino);
+      }
       if (!fino) continue;
-      if (!cmp_name(lname,blk+j+2,dentsz-2)) {
+      if (!cmp_name(lname,(const char *)(blk+j+2),dentsz-2)) {
         if (blkp) *blkp = i / BLOCK_SIZE;
         if (offp) *offp = j;
         return fino;
@@ -96,6 +100,9 @@ void dname_add(struct minix_fs_dat *fs,int dinode,const char *name,int inode) {
     bsz = read_inoblk(fs,dinode,nblk = i/BLOCK_SIZE,blk);
     for (j = 0; j < bsz ; j += dentsz) {
       u16 fino = *((u16 *)(blk+j));
+      if (fs->is_BE) {
+        fino = ntohs(fino);
+      }
       if (!fino) goto SKIP_ALL;
     }
   }
@@ -117,7 +124,7 @@ SKIP_ALL:
   }
   /* Create directory entry */
   *((u16 *)(blk+j)) = inode;
-  strncpy(blk+j+2,name,dentsz-2);
+  strncpy((char *)(blk+j+2),name,dentsz-2);
   
   /* Update directory */
   write_inoblk(fs,dinode,nblk,blk);

@@ -28,6 +28,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <arpa/inet.h>
 
 /**
  * Print a directory entry
@@ -35,7 +36,7 @@
  * @param dp - pointer to directory entry's name
  * @param namlen - length of file name
  */
-void outent(FILE *fp,const char *dp,int namlen) {
+void outent(FILE *fp,const u8 *dp,int namlen) {
   while (*dp && namlen--) {
     putc(*dp++,fp);
   }
@@ -68,6 +69,9 @@ void dodir(struct minix_fs_dat *fs,const char *path) {
     bsz = read_inoblk(fs,inode,i / BLOCK_SIZE,blk);
     for (j = 0; j < bsz ; j+= dentsz) {
       u16 fino = *((u16 *)(blk+j));
+      if (fs->is_BE) {
+        fino = ntohs(fino);
+      }
       // printf("%d ",fino);
       if (fino == 0) continue;
       outent(stdout,blk+j+2,dentsz-2);
@@ -260,6 +264,9 @@ void dormdir(struct minix_fs_dat *fs,const char *dir) {
     bsz = read_inoblk(fs,inode,i / BLOCK_SIZE,blk);
     for (j = 0; j < bsz ; j+= dentsz) {
       u16 fino = *((u16 *)(blk+j));
+      if (fs->is_BE) {
+        fino = ntohs(fino);
+      }
       if (blk[j+2] == '.' && blk[j+3] == 0) continue;
       if (blk[j+2] == '.' && blk[j+3] == '.'&& blk[j+4] == 0) {
         pinode = fino;

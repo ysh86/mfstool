@@ -28,6 +28,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 /**
  * Calculate the zone number from the file block in inode (Minix v2)
  * @param fs - filesystem structure
@@ -76,6 +77,9 @@ int ino_zone(struct minix_fs_dat *fs,struct minix_inode *ino,int blk) {
     u16 iblks[MINIX_ZONESZ];
     if (ino->i_indir_zone == 0) return 0;
     dofread(goto_blk(fs->fp,ino->i_indir_zone),iblks,sizeof iblks);
+    if (fs->is_BE) {
+      iblks[blk] = ntohs(iblks[blk]);
+    }
     return iblks[blk];
   }
   /* Double indirect block. */
@@ -84,8 +88,14 @@ int ino_zone(struct minix_fs_dat *fs,struct minix_inode *ino,int blk) {
     int iblks[MINIX_ZONESZ];
     if (ino->i_dbl_indr_zone == 0) return 0;
     dofread(goto_blk(fs->fp,ino->i_dbl_indr_zone),iblks,sizeof iblks);
+    if (fs->is_BE) {
+      iblks[blk / MINIX_ZONESZ] = ntohs(iblks[blk / MINIX_ZONESZ]);
+    }
     if (iblks[blk / MINIX_ZONESZ] == 0) return 0;
     dofread(goto_blk(fs->fp,iblks[blk / MINIX_ZONESZ]),iblks,sizeof iblks);
+    if (fs->is_BE) {
+      iblks[blk % MINIX_ZONESZ] = ntohs(iblks[blk % MINIX_ZONESZ]);
+    }
     return iblks[blk % MINIX_ZONESZ];
   }
   die("file bigger than maximum size");
