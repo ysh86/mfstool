@@ -119,6 +119,7 @@ struct minix_dir_entry {
 struct minix_fs_dat {
 	FILE *fp;
 	struct minix_super_block msb;
+	u8 is_BE;
 	u8 *inode_bmap;
 	u8 *zone_bmap;
 	union {

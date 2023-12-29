@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <arpa/inet.h>
 
 
 /**
@@ -157,7 +158,11 @@ struct minix_fs_dat *new_fs(const char *fn,int magic,unsigned long fsize,int ino
 struct minix_fs_dat *open_fs(const char *fn,int chk) {
   struct minix_fs_dat *fs = domalloc(sizeof(struct minix_fs_dat),0);
 
+#if 1
+  fs->fp = fopen(fn,"rb");
+#else
   fs->fp = fopen(fn,"r+b");
+#endif
   if (!fs->fp) die(fn);
 
   /*
@@ -169,10 +174,28 @@ struct minix_fs_dat *open_fs(const char *fn,int chk) {
   /*
    * Sanity checks ...
    */
+  fs->is_BE = 0;
   if (FSMAGIC(fs) != MINIX_SUPER_MAGIC && FSMAGIC(fs) != MINIX_SUPER_MAGIC2 && 
 	FSMAGIC(fs) != MINIX2_SUPER_MAGIC && FSMAGIC(fs) != MINIX2_SUPER_MAGIC2) {
+    if (FSMAGIC(fs) == ntohs(MINIX_SUPER_MAGIC)) {
+      fs->is_BE = 1;
+    } else
     fatalmsg("invalid magic fs-type %x",FSMAGIC(fs));
   }
+#if 1
+  if (fs->is_BE) {
+    fs->msb.s_ninodes = ntohs(fs->msb.s_ninodes);
+    fs->msb.s_nzones = ntohs(fs->msb.s_nzones);
+    fs->msb.s_imap_blocks = ntohs(fs->msb.s_imap_blocks);
+    fs->msb.s_zmap_blocks = ntohs(fs->msb.s_zmap_blocks);
+    fs->msb.s_firstdatazone = ntohs(fs->msb.s_firstdatazone);
+    fs->msb.s_log_zone_size = ntohs(fs->msb.s_log_zone_size);
+    fs->msb.s_max_size = ntohl(fs->msb.s_max_size);
+    fs->msb.s_magic = ntohs(fs->msb.s_magic);
+    fs->msb.s_state = ntohs(fs->msb.s_state);
+    fs->msb.s_zones = ntohl(fs->msb.s_zones);
+  }
+#endif
   if (MINIX_VALID_FS != fs->msb.s_state) {
     if (chk) die("Filesystem in an unknown state");
     fprintf(stderr,"Warning: %s in an unknown state\n",fn);
@@ -189,6 +212,29 @@ struct minix_fs_dat *open_fs(const char *fn,int chk) {
 	  fs->inode_bmap,IMAPS(fs) * BLOCK_SIZE);
   dofread(fs->fp,fs->zone_bmap,ZMAPS(fs) * BLOCK_SIZE);
   dofread(fs->fp,fs->ino.v1,INODE_BUFFER_SIZE(fs));
+#if 1
+  if (fs->is_BE) {
+    struct minix_inode *p = INODE_BUF(fs);
+    u16 i;
+    for (i = 0; i < INODES(fs); i++) {
+      p->i_mode = ntohs(p->i_mode);
+      p->i_uid = ntohs(p->i_uid);
+      p->i_size = ntohl(p->i_size);
+      p->i_time = ntohl(p->i_time);
+      p->i_zone[0] = ntohs(p->i_zone[0]);
+      p->i_zone[1] = ntohs(p->i_zone[1]);
+      p->i_zone[2] = ntohs(p->i_zone[2]);
+      p->i_zone[3] = ntohs(p->i_zone[3]);
+      p->i_zone[4] = ntohs(p->i_zone[4]);
+      p->i_zone[5] = ntohs(p->i_zone[5]);
+      p->i_zone[6] = ntohs(p->i_zone[6]);
+      p->i_indir_zone = ntohs(p->i_indir_zone);
+      p->i_dbl_indr_zone = ntohs(p->i_dbl_indr_zone);
+
+      p++;
+    }
+  }
+#endif
 
    return fs;
 }
@@ -199,6 +245,9 @@ struct minix_fs_dat *open_fs(const char *fn,int chk) {
  * @return NULL
  */ 
 struct minix_fs_dat *close_fs(struct minix_fs_dat *fs) {
+#if 1
+  return 0;
+#else
   goto_blk(fs->fp,MINIX_SUPER_BLOCK);
   dofwrite(goto_blk(fs->fp,MINIX_SUPER_BLOCK),
 		&fs->msb,sizeof(struct minix_super_block));
@@ -214,5 +263,6 @@ struct minix_fs_dat *close_fs(struct minix_fs_dat *fs) {
     dofwrite(fs->fp,fs->ino.v1,INODE_BUFFER_SIZE(fs));
 
   return 0;  
+#endif
 }
 

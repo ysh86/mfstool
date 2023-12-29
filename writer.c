@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 
 /**
  * Write to a file/inode.  It makes holes along the way...
@@ -86,7 +87,7 @@ void writedata(struct minix_fs_dat *fs,u8 *blk,u32 cnt,int inode) {
 void domklnk(struct minix_fs_dat *fs,char *target,char *lnknam) {
   int len = strlen(target);
   int inode = make_node(fs,lnknam,0777|S_IFLNK,0,0,len,NOW,NOW,NOW,NULL);
-  writedata(fs,target,len,inode);
+  writedata(fs,(u8 *)target,len,inode);
 }
 
 /**
